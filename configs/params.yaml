@@ -34,7 +34,7 @@ gesture_node:
     retract_ratio: 0.6
     min_duration_sec: 5.0
     min_swaps: 4
-    max_interval_sec: 2.0
+    max_interval_sec: 3.0       # Phase 3 実測(2026-07-08): 13fps 環境では 2.0 だとスワップ 1 回で途切れる
     cooldown_sec: 15.0
 
 safety_gate:
