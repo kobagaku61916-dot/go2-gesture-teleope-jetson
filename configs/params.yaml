@@ -1,0 +1,58 @@
+# gesture_node / safety_gate / go2_bridge の設定（設計フェーズの骨格）
+# 実測が必要な値は Phase 1-2 で埋める（TODO コメント参照）
+
+gesture_node:
+  camera:
+    type: v4l2
+    device: -1        # TODO(Phase 1): v4l2-ctl --list-formats で YUYV ノードを実測して設定
+    width: 640
+    height: 480
+    fourcc: ""
+  pose:
+    model_complexity: 1        # TODO(Phase 2): fps 実測で 0/1 を決定
+    detection_confidence: 0.5
+    tracking_confidence: 0.5
+    min_visibility: 0.5        # 新規: 主要ランドマークの visibility 下限（未満は NO BODY 扱い）
+  rate: 30.0                   # publish ループ上限 [Hz]（実効はカメラ/推論 fps に律速）
+  display: false               # Jetson はヘッドレス既定
+  # --- 速度（safety_gate で 0.6/0.8 にクランプされる）---
+  low_speed_mode: true         # 初期検証は必ず true（0.2/0.3 に強制）
+  linear_speed: 0.6
+  angular_speed: 0.8
+  # --- ジェスチャー判定（旧リポ実績値・肩幅正規化）---
+  raise_margin: 0.5
+  raise_near: 1.2
+  level_margin: 0.6
+  extend_margin: 1.0
+  debounce_frames: 3           # 新規: N フレーム連続一致で非ゼロ指令を確定
+  # --- ダンス（交互腕伸ばし。旧リポ 2026-07-06 実証値）---
+  action:
+    enable: false              # 危険動作はデフォルト無効
+    dance: dance1
+  dance:
+    extend_ratio: 1.0
+    retract_ratio: 0.6
+    min_duration_sec: 5.0
+    min_swaps: 4
+    max_interval_sec: 2.0
+    cooldown_sec: 15.0
+
+safety_gate:
+  max_linear: 0.6              # クランプ上限（変更しない）
+  max_angular: 0.8
+  watchdog_timeout_sec: 0.5
+  action_allowlist: [dance1, dance2, hello, stop_move, balance_stand]
+  action_cooldown_sec: 15.0
+  action_stop_hold_sec: 1.0    # /cmd_vel がこの秒数ゼロでなければアクション拒否
+  action_bypass: [stop_move, balance_stand]   # 緊急系はゲート即通し
+
+go2_bridge:
+  # 抽象アクション名 → api_id（Jetson 上の SDK 2 ソースで実測確認済み 2026-07-06）
+  # 危険動作（FrontFlip 等）は載せないこと
+  action_api_ids:
+    dance1: 1022
+    dance2: 1023
+    hello: 1016
+    stop_move: 1003
+    balance_stand: 1002
+  move_api_id: 1008
