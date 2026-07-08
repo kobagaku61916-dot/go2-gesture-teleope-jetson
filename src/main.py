@@ -28,6 +28,7 @@ from std_msgs.msg import String
 
 from src.camera import create_camera
 from src.config import load_section
+from src.follow.follow_controller import FollowController, FollowParams
 from src.gesture.dance_detector import DanceDetector, DanceParams
 from src.gesture.debounce import CommandDebouncer
 from src.gesture.gesture_mapper import GestureParams, compute_command
@@ -64,6 +65,25 @@ class GestureNode(Node):
         self._min_visibility = float(pose.get("min_visibility", 0.5))
         self._debouncer = CommandDebouncer(int(cfg.get("debounce_frames", 3)))
         self._display = bool(cfg.get("display", False))
+
+        # --- 追従モード（--follow）。テレオペ・アクション検出とは排他 ---
+        self._follow = None
+        if bool(cfg.get("follow_mode", False)):
+            fl = cfg.get("follow", {})
+            self._follow = FollowController(FollowParams(
+                target_sw=float(fl.get("target_sw", 0.19)),
+                sw_deadband=float(fl.get("sw_deadband", 0.10)),
+                center_deadband=float(fl.get("center_deadband", 0.05)),
+                k_dist=float(fl.get("k_dist", 4.0)),
+                k_yaw=float(fl.get("k_yaw", 2.0)),
+                max_vx=float(fl.get("max_vx", 0.3)),
+                max_back_vx=float(fl.get("max_back_vx", 0.2)),
+                max_omega=float(fl.get("max_omega", 0.6)),
+                smooth_alpha=float(fl.get("smooth_alpha", 0.4))))
+            self._last_sw_log = 0.0
+            self.get_logger().warn(
+                f"追従モード: target_sw={fl.get('target_sw', 0.19)}（1.5m 相当・要校正）。"
+                "テレオペ・アクション検出は無効。人を見失うと即停止・探索はしない")
         # 対面操作のミラー: ユーザーから見て手を出した側と同じ方向へ回るよう
         # 旋回符号を反転する（ロボットとユーザーが向かい合う搭載カメラ構成用）
         self._mirror_turns = bool(cfg.get("mirror_turns", True))
@@ -90,7 +110,7 @@ class GestureNode(Node):
         self._action_pub = None
         self._dance_detector = None
         self._greet_detector = None
-        if bool(act.get("enable", False)):
+        if bool(act.get("enable", False)) and self._follow is None:
             wv = cfg.get("wave", {})
             self._greet_action = str(act.get("greet", "hello"))
             self._greet_detector = WaveDetector(WaveParams(
@@ -143,6 +163,21 @@ class GestureNode(Node):
                 self._tracker.find_visibilities(), self._min_visibility):
             lm_list = []
 
+        if self._follow is not None:
+            # --- 追従モード: P 制御の連続値をそのまま publish（debounce 不使用）---
+            fs = self._follow.update(lm_list, w, h)
+            self.publish_cmd(fs.vx, 0.0, fs.omega)
+            now = time.monotonic()
+            if fs.label != self._last_label or now - self._last_sw_log >= 2.0:
+                # sw はキャリブレーション用（目標距離に立って読む）
+                self.get_logger().info(
+                    f"follow: {fs.label} sw={fs.sw:.3f} vx={fs.vx:+.2f} omega={fs.omega:+.2f}")
+                self._last_label = fs.label
+                self._last_sw_log = now
+            if self._display:
+                self._draw(img, fs.label, h)
+            return
+
         vx, vy, omega, label = compute_command(lm_list, w, h, self._gesture_params)
         if self._mirror_turns:
             omega = -omega
@@ -187,12 +222,15 @@ class GestureNode(Node):
             self._last_label = label
 
         if self._display:
-            import cv2
-            color = (0, 255, 0) if label not in ("STOP", "NO BODY") else (0, 0, 255)
-            cv2.putText(img, label, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.1, color, 3)
-            cv2.imshow(WINDOW_NAME, img)
-            if (cv2.waitKey(1) & 0xFF) == ord("q"):
-                raise KeyboardInterrupt
+            self._draw(img, label, h)
+
+    def _draw(self, img, label, h):
+        import cv2
+        color = (0, 255, 0) if label not in ("STOP", "NO BODY", "NO TARGET") else (0, 0, 255)
+        cv2.putText(img, label, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.1, color, 3)
+        cv2.imshow(WINDOW_NAME, img)
+        if (cv2.waitKey(1) & 0xFF) == ord("q"):
+            raise KeyboardInterrupt
 
     def shutdown(self):
         try:
@@ -212,6 +250,8 @@ def main():
     parser.add_argument("--device", type=int, default=None, help="camera.device 上書き")
     parser.add_argument("--display", action="store_true", help="表示ウィンドウ有効化")
     parser.add_argument("--enable-action", action="store_true", help="ダンス検出有効化")
+    parser.add_argument("--follow", action="store_true",
+                        help="人追従モード（テレオペ/アクション無効。肩幅ベースの P 制御）")
     parser.add_argument("--low-speed", action="store_true",
                         help="低速モード（0.2/0.3 に強制。初回検証・デモ安全用）")
     parser.add_argument("--no-low-speed", action="store_true",
@@ -225,6 +265,8 @@ def main():
         cfg["display"] = True
     if args.enable_action:
         cfg.setdefault("action", {})["enable"] = True
+    if args.follow:
+        cfg["follow_mode"] = True
     if args.low_speed:
         cfg["low_speed_mode"] = True
     if args.no_low_speed:

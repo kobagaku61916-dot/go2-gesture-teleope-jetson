@@ -42,6 +42,19 @@ gesture_node:
     min_duration_sec: 2.0      # 振りの継続秒数
     max_gap_sec: 1.2           # 方向転換の間隔がこれを超えたら振り終了（実機調整: 0.8→1.2。13fps で折り返しを取り逃しても継続）
     cooldown_sec: 10.0         # 発火後の不応期 [s]
+  # --- 人追従モード（起動引数 --follow で有効。テレオペ/アクションと排他）---
+  # 距離は肩幅ベース推定（深度不使用）。target_sw は「追従距離に立った人の正規化肩幅」。
+  # 0.19 は D435i HFOV≈69°・肩幅 0.4m・距離 1.5m の幾何推定 → Phase A で実測校正すること。
+  follow:
+    target_sw: 0.19            # 追従目標距離 1.5m 相当（要実測校正: follow ログの sw= を読む）
+    sw_deadband: 0.10          # 目標 ±10% は前後停止
+    center_deadband: 0.05      # 画面中心 ±5% は旋回停止
+    k_dist: 4.0                # 前後 P ゲイン
+    k_yaw: 2.0                 # 旋回 P ゲイン
+    max_vx: 0.3                # 前進上限（初期は保守的に。慣れたら 0.5 まで）
+    max_back_vx: 0.2           # 後退上限（近すぎ時）
+    max_omega: 0.6             # 旋回上限
+    smooth_alpha: 0.4          # 出力ローパス（小さいほど滑らか・応答遅）
   dance:
     extend_ratio: 1.0
     retract_ratio: 0.6
