@@ -12,7 +12,9 @@ gesture_node:
     model_complexity: 1        # 実測(2026-07-08): 0/1 とも 12.9fps で同速 → 精度優先で 1
     detection_confidence: 0.5
     tracking_confidence: 0.5
-    min_visibility: 0.5        # 新規: 主要ランドマークの visibility 下限（未満は NO BODY 扱い）
+    min_visibility: 0.3        # 主要ランドマークの visibility 下限（未満は NO BODY 扱い）
+                               # Phase 4 実測(2026-07-08): 0.5 だと腕上げ時に手首 visibility が
+                               # 下回り FORWARD⇄NO BODY のちらつき → debounce リセットで指令が出ない
   rate: 30.0                   # publish ループ上限 [Hz]（実効はカメラ/推論 fps に律速）
   display: false               # Jetson はヘッドレス既定
   # --- 速度（safety_gate で 0.6/0.8 にクランプされる）---
