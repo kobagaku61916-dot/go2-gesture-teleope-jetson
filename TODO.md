@@ -36,7 +36,7 @@
 
 - [x] Phase 1: カメラ取得 fps 実測 → **30.0fps**（requirements §5 記入済み）
 - [x] Phase 2: Pose 推論 fps / CPU 実測 → **12.9fps / 1.1 コア（18%）**。complexity 1 を既定に（同 §5.1）
-- [ ] Phase 3: 全ラベルのログ確認・debounce の効き確認
+- [x] Phase 3: 全ラベルのログ確認（2026-07-08 完了）— STOP / FORWARD / BACKWARD / TURN-LEFT / TURN-RIGHT / NO BODY / DANCE すべて実機カメラ（Go2 搭載 D435i）で確認。DANCE! 発火 4 回。調整: dance.max_interval_sec 2.0→**3.0**（13fps 環境では 2.0 だとスワップが繋がらない）
 - [ ] Phase 4: safety_gate 貫通・クランプ・watchdog・action ゲート拒否/通過を echo で確認
 
 ## 実機（Phase 5〜6。人間の安全確認つき）
