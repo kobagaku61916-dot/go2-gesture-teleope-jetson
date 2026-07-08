@@ -6,7 +6,7 @@
 > 旧構成の「案C: 全処理 Jetson」（architecture.md 参照）を実現し、**制御ループから Desktop–Jetson 間 Wi-Fi を排除**して安定化する。
 > 旧リポで実証済みの判定ロジック・安全機構・運用ノウハウ（トラブル記録 T1〜T4）を最大限再利用する。
 
-**ステータス: Phase 3 完了（2026-07-08）— 全ジェスチャーラベル + ダンス発火を Go2 搭載カメラで確認。次: Phase 4 仮想コマンド確認（[runbook.md](runbook.md)）**
+**ステータス: Phase 4 完了（2026-07-08）— safety_gate 貫通・クランプ・watchdog・アクションゲート（通過/拒否）をすべて実測確認。次: Phase 5 実機・低速（[runbook.md](runbook.md)。go2_bridge の起動は人間のみ）**
 
 ---
 

@@ -37,7 +37,12 @@
 - [x] Phase 1: カメラ取得 fps 実測 → **30.0fps**（requirements §5 記入済み）
 - [x] Phase 2: Pose 推論 fps / CPU 実測 → **12.9fps / 1.1 コア（18%）**。complexity 1 を既定に（同 §5.1）
 - [x] Phase 3: 全ラベルのログ確認（2026-07-08 完了）— STOP / FORWARD / BACKWARD / TURN-LEFT / TURN-RIGHT / NO BODY / DANCE すべて実機カメラ（Go2 搭載 D435i）で確認。DANCE! 発火 4 回。調整: dance.max_interval_sec 2.0→**3.0**（13fps 環境では 2.0 だとスワップが繋がらない）
-- [ ] Phase 4: safety_gate 貫通・クランプ・watchdog・action ゲート拒否/通過を echo で確認
+- [x] Phase 4: 完了（2026-07-08）— 実測結果:
+  - 無人ゼロ貫通（131 msgs 全ゼロ・~11Hz）/ クランプ（1.0→**0.6**, 2.0→**0.8**）/ **watchdog 発火 ×2**
+  - ジェスチャー → ±指令貫通（FORWARD 0.2×84 / BACKWARD / TURN±0.3。debounce 経由）
+  - ダンス発火 → ゲート**通過 ×2**、**拒否(未許可: backflip)**、**拒否(移動指令 1s 内)** を live 実証
+  - 調整 3 件: `min_visibility` 0.5→**0.3**（腕上げで手首 visibility が下がり FORWARD⇄NO BODY ちらつき）/
+    `no_body_grace_sec` **0.7 追加**（欠損 1 フレームでダンスチェーン全消失）/ `max_interval_sec` → 3.0（Phase 3）
 
 ## 実機（Phase 5〜6。人間の安全確認つき）
 
