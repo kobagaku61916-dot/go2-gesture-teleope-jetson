@@ -35,10 +35,10 @@ gesture_node:
     dance: dance1
     greet: hello               # 手振りで送るアクション（Greet = Hello お手, api 1016）
   wave:                        # 右手振り検出(2026-07-08。両手かざし方式から変更)
-    min_amplitude: 0.25        # 方向転換とみなす片振れ幅 [肩幅]
+    min_amplitude: 0.18        # 方向転換とみなす片振れ幅 [肩幅]（実機調整: 0.25→0.18）
     min_swings: 4              # 発火に必要な左右方向転換の回数
     min_duration_sec: 2.0      # 振りの継続秒数
-    max_gap_sec: 0.8           # 方向転換の間隔がこれを超えたら振り終了
+    max_gap_sec: 1.2           # 方向転換の間隔がこれを超えたら振り終了（実機調整: 0.8→1.2。13fps で折り返しを取り逃しても継続）
     cooldown_sec: 10.0         # 発火後の不応期 [s]
   dance:
     extend_ratio: 1.0
