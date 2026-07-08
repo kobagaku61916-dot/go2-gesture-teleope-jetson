@@ -71,19 +71,22 @@ class GestureNode(Node):
         if bool(cfg.get("follow_mode", False)):
             fl = cfg.get("follow", {})
             self._follow = FollowController(FollowParams(
-                target_sw=float(fl.get("target_sw", 0.19)),
-                sw_deadband=float(fl.get("sw_deadband", 0.10)),
+                target_distance_m=float(fl.get("target_distance_m", 1.5)),
+                sw_at_target=float(fl.get("sw_at_target", 0.105)),
+                deadband_m=float(fl.get("deadband_m", 0.15)),
                 center_deadband=float(fl.get("center_deadband", 0.05)),
-                k_dist=float(fl.get("k_dist", 4.0)),
+                k_dist=float(fl.get("k_dist", 0.8)),
                 k_yaw=float(fl.get("k_yaw", 2.0)),
-                max_vx=float(fl.get("max_vx", 0.3)),
+                max_vx=float(fl.get("max_vx", 0.6)),
                 max_back_vx=float(fl.get("max_back_vx", 0.2)),
-                max_omega=float(fl.get("max_omega", 0.6)),
-                smooth_alpha=float(fl.get("smooth_alpha", 0.4))))
+                max_omega=float(fl.get("max_omega", 0.8)),
+                smooth_alpha=float(fl.get("smooth_alpha", 0.6)),
+                lost_grace_sec=float(fl.get("lost_grace_sec", 0.25))))
             self._last_sw_log = 0.0
             self.get_logger().warn(
-                f"追従モード: target_sw={fl.get('target_sw', 0.19)}（1.5m 相当・要校正）。"
-                "テレオペ・アクション検出は無効。人を見失うと即停止・探索はしない")
+                f"追従モード v2: 目標 {fl.get('target_distance_m', 1.5)}m "
+                f"(sw_at_target={fl.get('sw_at_target', 0.105)})。"
+                "テレオペ・アクション検出は無効。見失い猶予 0.25s・探索はしない")
         # 対面操作のミラー: ユーザーから見て手を出した側と同じ方向へ回るよう
         # 旋回符号を反転する（ロボットとユーザーが向かい合う搭載カメラ構成用）
         self._mirror_turns = bool(cfg.get("mirror_turns", True))
@@ -167,13 +170,13 @@ class GestureNode(Node):
 
         if self._follow is not None:
             # --- 追従モード: P 制御の連続値をそのまま publish（debounce 不使用）---
-            fs = self._follow.update(lm_list, w, h)
-            self.publish_cmd(fs.vx, 0.0, fs.omega)
             now = time.monotonic()
+            fs = self._follow.update(lm_list, w, h, now)
+            self.publish_cmd(fs.vx, 0.0, fs.omega)
             if fs.label != self._last_label or now - self._last_sw_log >= 2.0:
-                # sw はキャリブレーション用（目標距離に立って読む）
                 self.get_logger().info(
-                    f"follow: {fs.label} sw={fs.sw:.3f} vx={fs.vx:+.2f} omega={fs.omega:+.2f}")
+                    f"follow: {fs.label} dist={fs.distance_m:.2f}m "
+                    f"vx={fs.vx:+.2f} omega={fs.omega:+.2f}")
                 self._last_label = fs.label
                 self._last_sw_log = now
             if self._display:
