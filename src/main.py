@@ -31,6 +31,7 @@ from src.config import load_section
 from src.gesture.dance_detector import DanceDetector, DanceParams
 from src.gesture.debounce import CommandDebouncer
 from src.gesture.gesture_mapper import GestureParams, compute_command
+from src.gesture.greet_detector import GreetDetector, GreetParams
 from src.pose.confidence import key_landmarks_visible
 from src.pose.pose_tracker import PoseTracker
 
@@ -63,6 +64,9 @@ class GestureNode(Node):
         self._min_visibility = float(pose.get("min_visibility", 0.5))
         self._debouncer = CommandDebouncer(int(cfg.get("debounce_frames", 3)))
         self._display = bool(cfg.get("display", False))
+        # 対面操作のミラー: ユーザーから見て手を出した側と同じ方向へ回るよう
+        # 旋回符号を反転する（ロボットとユーザーが向かい合う搭載カメラ構成用）
+        self._mirror_turns = bool(cfg.get("mirror_turns", True))
 
         self._camera = create_camera(
             camera_type=str(cam["type"]), device=int(cam["device"]),
@@ -81,11 +85,19 @@ class GestureNode(Node):
 
         self._pub = self.create_publisher(Twist, "/cmd_vel", 10)
 
-        # --- アクション（ダンス）---
+        # --- アクション（ダンス・Greet）---
         act = cfg.get("action", {})
         self._action_pub = None
         self._dance_detector = None
+        self._greet_detector = None
         if bool(act.get("enable", False)):
+            gr = cfg.get("greet", {})
+            self._greet_action = str(act.get("greet", "hello"))
+            self._greet_detector = GreetDetector(GreetParams(
+                raise_margin=float(cfg["raise_margin"]),
+                raise_near=float(cfg["raise_near"]),
+                hold_sec=float(gr.get("hold_sec", 1.5)),
+                cooldown_sec=float(gr.get("cooldown_sec", 10.0))))
             dc = cfg["dance"]
             self._dance_action = str(act.get("dance", "dance1"))
             self._action_pub = self.create_publisher(String, "/go2_action", 10)
@@ -131,6 +143,26 @@ class GestureNode(Node):
             lm_list = []
 
         vx, vy, omega, label = compute_command(lm_list, w, h, self._gesture_params)
+        if self._mirror_turns:
+            omega = -omega
+            if "TURN-RIGHT" in label:
+                label = label.replace("TURN-RIGHT", "TURN-LEFT")
+            elif "TURN-LEFT" in label:
+                label = label.replace("TURN-LEFT", "TURN-RIGHT")
+
+        if self._greet_detector is not None:
+            gstatus = self._greet_detector.update(lm_list, w, h, time.monotonic())
+            if gstatus.holding:
+                # 両手上げは mapper 上 STOP だが、明示的に 0 を保証しラベルを出す
+                vx, vy, omega = 0.0, 0.0, 0.0
+                label = f"GREET? {int(gstatus.progress * 100)}%"
+            if gstatus.triggered:
+                msg = String()
+                msg.data = self._greet_action
+                self._action_pub.publish(msg)
+                label = "GREET!"
+                self.get_logger().info(
+                    f"Greet 検出（両手かざし）→ action '{self._greet_action}' を送信")
 
         if self._dance_detector is not None:
             status = self._dance_detector.update(lm_list, w, h, time.monotonic())

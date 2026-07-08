@@ -17,6 +17,8 @@ gesture_node:
                                # 下回り FORWARD⇄NO BODY のちらつき → debounce リセットで指令が出ない
   rate: 30.0                   # publish ループ上限 [Hz]（実効はカメラ/推論 fps に律速）
   display: false               # Jetson はヘッドレス既定
+  mirror_turns: true           # 対面操作ミラー(2026-07-08 追加): ユーザーが手を出した側と
+                               # 同じ方向へ回る（搭載カメラでロボットと向かい合う構成用）
   # --- 速度（safety_gate で 0.6/0.8 にクランプされる）---
   low_speed_mode: true         # 初期検証は必ず true（0.2/0.3 に強制）
   linear_speed: 0.6
@@ -31,6 +33,10 @@ gesture_node:
   action:
     enable: false              # 危険動作はデフォルト無効
     dance: dance1
+    greet: hello               # 両手かざしで送るアクション（Greet = Hello お手, api 1016）
+  greet:                       # 両手かざし検出(2026-07-08 追加)
+    hold_sec: 1.5              # 両手を上げたまま保持する秒数
+    cooldown_sec: 10.0         # 発火後の不応期 [s]
   dance:
     extend_ratio: 1.0
     retract_ratio: 0.6
