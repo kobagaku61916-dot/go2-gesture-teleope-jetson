@@ -31,7 +31,7 @@ from src.config import load_section
 from src.gesture.dance_detector import DanceDetector, DanceParams
 from src.gesture.debounce import CommandDebouncer
 from src.gesture.gesture_mapper import GestureParams, compute_command
-from src.gesture.greet_detector import GreetDetector, GreetParams
+from src.gesture.wave_detector import WaveDetector, WaveParams
 from src.pose.confidence import key_landmarks_visible
 from src.pose.pose_tracker import PoseTracker
 
@@ -91,13 +91,14 @@ class GestureNode(Node):
         self._dance_detector = None
         self._greet_detector = None
         if bool(act.get("enable", False)):
-            gr = cfg.get("greet", {})
+            wv = cfg.get("wave", {})
             self._greet_action = str(act.get("greet", "hello"))
-            self._greet_detector = GreetDetector(GreetParams(
-                raise_margin=float(cfg["raise_margin"]),
-                raise_near=float(cfg["raise_near"]),
-                hold_sec=float(gr.get("hold_sec", 1.5)),
-                cooldown_sec=float(gr.get("cooldown_sec", 10.0))))
+            self._greet_detector = WaveDetector(WaveParams(
+                min_amplitude=float(wv.get("min_amplitude", 0.25)),
+                min_swings=int(wv.get("min_swings", 4)),
+                min_duration_sec=float(wv.get("min_duration_sec", 2.0)),
+                max_gap_sec=float(wv.get("max_gap_sec", 0.8)),
+                cooldown_sec=float(wv.get("cooldown_sec", 10.0))))
             dc = cfg["dance"]
             self._dance_action = str(act.get("dance", "dance1"))
             self._action_pub = self.create_publisher(String, "/go2_action", 10)
@@ -152,17 +153,17 @@ class GestureNode(Node):
 
         if self._greet_detector is not None:
             gstatus = self._greet_detector.update(lm_list, w, h, time.monotonic())
-            if gstatus.holding:
-                # 両手上げは mapper 上 STOP だが、明示的に 0 を保証しラベルを出す
+            if gstatus.waving:
+                # 振り中の上げた右手が FORWARD として通らないよう抑制する
                 vx, vy, omega = 0.0, 0.0, 0.0
-                label = f"GREET? {int(gstatus.progress * 100)}%"
+                label = f"WAVE? {int(gstatus.progress * 100)}%"
             if gstatus.triggered:
                 msg = String()
                 msg.data = self._greet_action
                 self._action_pub.publish(msg)
                 label = "GREET!"
                 self.get_logger().info(
-                    f"Greet 検出（両手かざし）→ action '{self._greet_action}' を送信")
+                    f"手振り検出（右手ワイビング）→ action '{self._greet_action}' を送信")
 
         if self._dance_detector is not None:
             status = self._dance_detector.update(lm_list, w, h, time.monotonic())
