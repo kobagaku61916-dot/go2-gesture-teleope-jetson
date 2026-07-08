@@ -158,9 +158,11 @@ class GestureNode(Node):
         img = self._tracker.find_pose(img, draw=self._display)
         lm_list = self._tracker.find_position(img, draw=False)
 
-        # 信頼度チェック: 主要ランドマークが低信頼なら NO BODY 扱い
+        # 信頼度チェック: 主要ランドマークが低信頼なら NO BODY 扱い。
+        # 追従モードは両肩(11,12)のみ使うため肩だけ検査（歩行中の手首遮蔽で切れない）
+        key_ids = (11, 12) if self._follow is not None else (11, 12, 15, 16)
         if lm_list and not key_landmarks_visible(
-                self._tracker.find_visibilities(), self._min_visibility):
+                self._tracker.find_visibilities(), self._min_visibility, key_ids):
             lm_list = []
 
         if self._follow is not None:
