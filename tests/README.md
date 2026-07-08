@@ -10,3 +10,6 @@
 - debounce（N フレーム連続一致で確定）の単体テスト
 
 実行: `venv/bin/python3 -m pytest tests/ -q`（mediapipe 不要のテスト構成を維持する）
+
+⚠️ Jetson では `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` を付けること
+（システム site-packages の壊れた pydantic を pytest プラグイン機構が拾って ImportError になる。2026-07-08 実測）。

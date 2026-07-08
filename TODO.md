@@ -11,25 +11,26 @@
 - [x] venv + **mediapipe 0.10.18** + numpy 1.26.4 導入（setup_jetson.sh 実行成功）
 - [x] `mp.solutions.pose` 動作確認（0.10.18 に solutions API あり）
 
-## 移植（architecture.md §5 の一覧どおり）
+## 移植（architecture.md §5 の一覧どおり）— ✅ 完了（2026-07-08）
 
-- [ ] `gesture_mapper.py` + テスト 12 件（変更ゼロ・import パスのみ）
-- [ ] `dance_detector.py` + テスト 7 件（同上）
-- [ ] `camera/base.py` / `camera/v4l2_camera.py`（変更ゼロ見込み）
-- [ ] `pose_tracker.py` → `src/pose/`（0.10.18 対応。差分があればここで吸収）
-- [ ] Jetson 資産 `cmd_vel_relay.py` / `action_relay.py` → `src/safety/`（SIGHUP/SIGTERM でも 0 送出するハンドラ追加）
-- [ ] `sport_mode_bridge_node.py` + `action_bridge.py` → `src/bridge/go2_bridge.py` に統合（enP8p1s0 参加者 1 本化）
-- [ ] tests が Jetson venv で全件パス（19 件）
+- [x] `gesture_mapper.py` + テスト 12 件（変更ゼロ・import パスのみ）
+- [x] `dance_detector.py` + テスト 7 件（同上）
+- [x] `camera/base.py` / `camera/v4l2_camera.py` / ファクトリ（変更ゼロ）
+- [x] `pose_tracker.py` → `src/pose/`（0.10.18 前提化 + `find_visibilities()` 追加）
+- [x] `cmd_vel_relay.py` + `action_relay.py` → `src/safety/safety_gate.py` に統合（SIGINT/SIGTERM/**SIGHUP** いずれも 0 送出）
+- [x] `sport_mode_bridge_node.py` + `action_bridge.py` → `src/bridge/go2_bridge.py` に統合（enP8p1s0 参加者 1 本）
+- [x] tests が Jetson venv で全件パス（**32 件**。※Jetson では `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` が必要 — システム側の壊れた pydantic プラグイン対策）
+- [x] ノード 3 本の import スモークテスト（rclpy / unitree_api / mediapipe すべて解決）
 
-## 新規実装
+## 新規実装 — ✅ 完了（2026-07-08）
 
-- [ ] `src/main.py`（gesture_node）: ヘッドレス既定・lo URI 前提・終了時 0 publish
-- [ ] 姿勢推定の**信頼度チェック**（visibility 下限。未満は NO BODY 扱い）+ 単体テスト
-- [ ] ジェスチャー判定の**安定化 debounce**（N フレーム連続一致で確定。純関数）+ 単体テスト
-- [ ] **低速モード**（configs で 0.2/0.3 強制）
-- [ ] `configs/params.yaml`（カメラ・しきい値・速度・安全設定・アクション設定）
-- [ ] `scripts/run_gesture_node.sh` / `run_safety_gate.sh` / `run_go2_bridge.sh`（DDS URI 込み・tee ログ付き）
-- [ ] `scripts/setup_jetson.sh`
+- [x] `src/main.py`（gesture_node）: ヘッドレス既定・終了時 0 publish・ラベル変化ログ（Phase 3 用）
+- [x] 姿勢推定の**信頼度チェック**（`src/pose/confidence.py`）+ テスト 6 件
+- [x] **安定化 debounce**（`src/gesture/debounce.py`。STOP は即時通過）+ テスト 7 件
+- [x] **低速モード**（既定 true。0.2/0.3 強制。解除は `--no-low-speed` か configs）
+- [x] `configs/params.yaml`
+- [x] `scripts/run_gesture_node.sh` / `run_safety_gate.sh` / `run_go2_bridge.sh`
+- [x] `scripts/setup_jetson.sh`
 
 ## 検証（runbook.md の Phase 1〜4。Go2 は動かさない）
 
