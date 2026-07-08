@@ -20,8 +20,10 @@ gesture_node:
   mirror_turns: true           # 対面操作ミラー(2026-07-08 追加): ユーザーが手を出した側と
                                # 同じ方向へ回る（搭載カメラでロボットと向かい合う構成用）
   # --- 速度（safety_gate で 0.6/0.8 にクランプされる）---
-  low_speed_mode: true         # 初期検証は必ず true（0.2/0.3 に強制）
-  linear_speed: 0.6
+  # 2026-07-08: 実機で低速→最高速の段階検証を完走したため、既定を最高速に変更。
+  # 初めて動かす構成・環境では起動引数 --low-speed（0.2/0.3 強制）で検証してから。
+  low_speed_mode: false
+  linear_speed: 0.6            # クランプ上限 = 実効最高速
   angular_speed: 0.8
   # --- ジェスチャー判定（旧リポ実績値・肩幅正規化）---
   raise_margin: 0.5

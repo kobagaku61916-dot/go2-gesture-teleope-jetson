@@ -44,11 +44,16 @@
   - 調整 3 件: `min_visibility` 0.5→**0.3**（腕上げで手首 visibility が下がり FORWARD⇄NO BODY ちらつき）/
     `no_body_grace_sec` **0.7 追加**（欠損 1 フレームでダンスチェーン全消失）/ `max_interval_sec` → 3.0（Phase 3）
 
-## 実機（Phase 5〜6。人間の安全確認つき）
+## 実機（Phase 5〜6。人間の安全確認つき）— ✅ 完了（2026-07-08）
 
-- [ ] Phase 5 事前チェック（runbook §1）→ 低速 C 節シーケンス完走 → watchdog 実機確認 → 段階速度表で昇速
-- [ ] Phase 6: hello → dance1 の経路確認
-- [ ] 実測値・トラブルを runbook / requirements に反映して commit
+- [x] Phase 5: 低速（0.2/0.3）C 節完走 → **最高速（0.6/0.8 = クランプ上限）で全 4 方向+複合を完走** → 既定速度化
+  - 記録: 低速 FORWARD 0.2×177 / BACKWARD ×64、最高速 ±0.6×100 / ±0.8×91（すべて上限値ちょうどで出力）
+  - watchdog 実機発火を複数回確認。NO BODY 自動停止（搭載カメラで移動→視野が外れる→停止）も安全側に機能
+- [x] Phase 6: **Greet（右手振り 2 秒 → hello）と Dance1（交互腕伸ばし 5 秒）を実機で複数回成功**
+  - 対面ミラー旋回（mirror_turns）を追加（手を出した側と同じ方向へ回る）
+  - Greet は当初「両手かざし」→ 実機フィードバックで「右手振り」方式へ変更（wave_detector）
+- [x] 実機で見つけた調整の記録: min_visibility 0.3 / no_body_grace 0.7s / dance max_interval 3.0s / wave amplitude 0.18・gap 1.2s /
+  **safety_gate は lo 単独では bridge から発見できず wlx+lo が必須**（旧 relay と同構成）/ USB 再列挙で /dev/videoN が変わる
 
 ## 保留（動いてから）
 

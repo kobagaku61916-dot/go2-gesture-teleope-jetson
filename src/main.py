@@ -212,8 +212,10 @@ def main():
     parser.add_argument("--device", type=int, default=None, help="camera.device 上書き")
     parser.add_argument("--display", action="store_true", help="表示ウィンドウ有効化")
     parser.add_argument("--enable-action", action="store_true", help="ダンス検出有効化")
+    parser.add_argument("--low-speed", action="store_true",
+                        help="低速モード（0.2/0.3 に強制。初回検証・デモ安全用）")
     parser.add_argument("--no-low-speed", action="store_true",
-                        help="低速モード解除（configs の速度を使う）")
+                        help="低速モード解除（configs の速度を使う。既定が最高速のため通常不要）")
     args = parser.parse_args()
 
     cfg = load_section("gesture_node", args.config)
@@ -223,6 +225,8 @@ def main():
         cfg["display"] = True
     if args.enable_action:
         cfg.setdefault("action", {})["enable"] = True
+    if args.low_speed:
+        cfg["low_speed_mode"] = True
     if args.no_low_speed:
         cfg["low_speed_mode"] = False
 
