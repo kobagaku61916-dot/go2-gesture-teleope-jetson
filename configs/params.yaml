@@ -4,12 +4,12 @@
 gesture_node:
   camera:
     type: v4l2
-    device: -1        # TODO(Phase 1): v4l2-ctl --list-formats で YUYV ノードを実測して設定
+    device: 4         # 実測済み(2026-07-08): D435i RGB=YUYV は /dev/video4（USB3 接続・30fps）
     width: 640
     height: 480
     fourcc: ""
   pose:
-    model_complexity: 1        # TODO(Phase 2): fps 実測で 0/1 を決定
+    model_complexity: 1        # 実測(2026-07-08): 0/1 とも 12.9fps で同速 → 精度優先で 1
     detection_confidence: 0.5
     tracking_confidence: 0.5
     min_visibility: 0.5        # 新規: 主要ランドマークの visibility 下限（未満は NO BODY 扱い）

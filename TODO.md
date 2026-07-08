@@ -2,14 +2,14 @@
 
 最終更新: 2026-07-08。上から順に消化する（Phase 対応は runbook.md）。
 
-## 準備（コード書く前）
+## 準備（コード書く前）— ✅ 完了（2026-07-08）
 
-- [ ] GitHub リポジトリ作成・push（Desktop から）
-- [ ] Jetson へ clone（`~/go2-gesture-teleop-jetson`）
-- [ ] `lsusb -t` で D435i の USB 接続速度を確認（USB2/USB3）→ requirements-jetson.md に記録
-- [ ] `v4l2-ctl --list-formats` で **RGB(YUYV) ノードを実測特定** → configs/params.yaml に記録
-- [ ] venv 作成 + **mediapipe 0.10.18** + numpy<2 導入（scripts/setup_jetson.sh 化）
-- [ ] `mp.solutions.pose` が 0.10.18 で動くこと・API 差分の有無を確認（pose_tracker 移植の前提）
+- [x] GitHub リポジトリ作成・push（`go2-gesture-teleope-jetson`。public）
+- [x] Jetson へ配置（`~/go2-gesture-teleop-jetson`。public 化後は git pull 可）
+- [x] D435i の USB 接続速度 → **USB3 (5000M)** 確認
+- [x] RGB(YUYV) ノード → **/dev/video4** 実測（configs 反映済み）
+- [x] venv + **mediapipe 0.10.18** + numpy 1.26.4 導入（setup_jetson.sh 実行成功）
+- [x] `mp.solutions.pose` 動作確認（0.10.18 に solutions API あり）
 
 ## 移植（architecture.md §5 の一覧どおり）
 
@@ -33,8 +33,8 @@
 
 ## 検証（runbook.md の Phase 1〜4。Go2 は動かさない）
 
-- [ ] Phase 1: カメラ取得 fps 実測 → requirements-jetson.md §5 に記入
-- [ ] Phase 2: Pose 推論 fps / CPU 使用率実測（complexity 0/1 比較）→ 既定値決定
+- [x] Phase 1: カメラ取得 fps 実測 → **30.0fps**（requirements §5 記入済み）
+- [x] Phase 2: Pose 推論 fps / CPU 実測 → **12.9fps / 1.1 コア（18%）**。complexity 1 を既定に（同 §5.1）
 - [ ] Phase 3: 全ラベルのログ確認・debounce の効き確認
 - [ ] Phase 4: safety_gate 貫通・クランプ・watchdog・action ゲート拒否/通過を echo で確認
 
