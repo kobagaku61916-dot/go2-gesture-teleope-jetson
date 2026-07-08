@@ -95,7 +95,8 @@ class GestureNode(Node):
                 min_duration_sec=float(dc["min_duration_sec"]),
                 min_swaps=int(dc["min_swaps"]),
                 max_interval_sec=float(dc["max_interval_sec"]),
-                cooldown_sec=float(dc["cooldown_sec"])))
+                cooldown_sec=float(dc["cooldown_sec"]),
+                no_body_grace_sec=float(dc.get("no_body_grace_sec", 0.7))))
             self.get_logger().info(
                 f"dance 検出 有効（左右交互の腕伸ばし）: 発火で '{self._dance_action}'")
 

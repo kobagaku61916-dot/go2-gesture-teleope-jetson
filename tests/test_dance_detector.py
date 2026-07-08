@@ -156,16 +156,18 @@ def test_is_active_during_pattern():
     assert any(s.is_active for s in results)
 
 
-def test_no_body_resets():
+def test_long_no_body_resets():
     det = DanceDetector(PARAMS)
     t = 0.0
-    # 3 スワップ進めてから NO BODY → 続きから再開しても発火しない
+    # 3 スワップ進めてから grace(0.7s) を超える NO BODY → 続きから再開しても発火しない
     for side in ["R", None, "L", None, "R", None, "L"]:
         lm = pose_frame(side)
         for _ in range(int(0.5 * FPS)):
             det.update(lm, W, H, t)
             t += DT
-    det.update([], W, H, t)  # NO BODY
+    for _ in range(int(1.0 * FPS)):  # NO BODY 1.0 秒（grace 超過）
+        det.update([], W, H, t)
+        t += DT
     results = []
     for side in [None, "R", None, "L"]:  # 再開 2 スワップ分
         lm = pose_frame(side)
@@ -173,3 +175,30 @@ def test_no_body_resets():
             results.append(det.update(lm, W, H, t))
             t += DT
     assert not any(s.triggered for s in results)
+
+
+def test_brief_no_body_keeps_chain():
+    # チェーン進行中の数フレームの欠損（13fps 実機で頻発）ではリセットされない
+    det = DanceDetector(PARAMS)
+    results = []
+    t = 0.0
+    poses = alternating_poses(10)
+    mid = len(poses) // 2
+    for i, side in enumerate(poses):
+        hold = 0.4 if side else 0.2
+        lm = pose_frame(side)
+        for _ in range(int(hold * FPS)):
+            results.append(det.update(lm, W, H, t))
+            t += DT
+        if i == mid:  # 中間で 3 フレーム（0.1s）だけ NO BODY を挟む
+            for _ in range(3):
+                results.append(det.update([], W, H, t))
+                t += DT
+    assert sum(s.triggered for s in results) == 1
+
+
+def test_no_body_before_chain_is_inert():
+    det = DanceDetector(PARAMS)
+    # チェーン未開始の NO BODY は従来どおり何も起こさない
+    s = det.update([], W, H, 0.0)
+    assert not s.is_active and not s.triggered and s.swaps == 0

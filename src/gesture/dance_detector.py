@@ -41,6 +41,9 @@ class DanceParams:
     min_swaps: int = 4            # 発火に必要な左右切り替わり回数（5 秒間の下限）
     max_interval_sec: float = 2.0  # 切り替わりの間隔がこれを超えたらパターン中断
     cooldown_sec: float = 15.0    # 発火後の不応期（Dance 動作の完了時間以上に）
+    no_body_grace_sec: float = 0.7  # NO BODY がこの秒数以内ならチェーンを維持
+                                    # （13fps 実機で 1 フレームの欠損が頻発するため。
+                                    #   超えたら従来どおり全リセット）
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,7 @@ class DanceDetector:
         self._last_swap = None     # 最後に切り替わった時刻
         self._swaps = 0
         self._last_trigger = None
+        self._missing_since = None  # NO BODY が始まった時刻（grace 判定用）
 
     def reset(self) -> None:
         self._r_extended = False
@@ -73,6 +77,7 @@ class DanceDetector:
         self._chain_start = None
         self._last_swap = None
         self._swaps = 0
+        self._missing_since = None
 
     def update(self, lm_list, w, h, now: float) -> DanceStatus:
         """1 フレーム分のランドマークを与えて状態を更新する.
@@ -83,9 +88,21 @@ class DanceDetector:
             now: 現在時刻 [秒]（単調増加なら基準は問わない）。
         """
         if len(lm_list) < NUM_LANDMARKS:
-            # 人がいない: 状態ごとリセット（別人・再入場で誤発火しない）
-            self.reset()
-            return DanceStatus(0, False, False, 0.0)
+            if self._chain_start is None:
+                # チェーン未開始なら即リセット（従来どおり）
+                self.reset()
+                return DanceStatus(0, False, False, 0.0)
+            # チェーン進行中の短時間欠損は許容する（grace 超過で全リセット）
+            if self._missing_since is None:
+                self._missing_since = now
+            if now - self._missing_since > self._p.no_body_grace_sec:
+                self.reset()
+                return DanceStatus(0, False, False, 0.0)
+            duration = now - self._chain_start
+            progress = min(1.0, min(duration / self._p.min_duration_sec,
+                                    self._swaps / float(self._p.min_swaps)))
+            return DanceStatus(self._swaps, self._swaps >= 1, False, progress)
+        self._missing_since = None
 
         def norm(idx):
             return lm_list[idx][1] / float(w), lm_list[idx][2] / float(h)

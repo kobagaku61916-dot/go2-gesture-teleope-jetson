@@ -38,6 +38,7 @@ gesture_node:
     min_swaps: 4
     max_interval_sec: 3.0       # Phase 3 実測(2026-07-08): 13fps 環境では 2.0 だとスワップ 1 回で途切れる
     cooldown_sec: 15.0
+    no_body_grace_sec: 0.7     # Phase 4 実測(2026-07-08): 欠損 1 フレームで 50% のチェーンが消えたため追加
 
 safety_gate:
   max_linear: 0.6              # クランプ上限（変更しない）
