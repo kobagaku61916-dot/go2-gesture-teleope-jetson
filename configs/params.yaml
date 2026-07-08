@@ -51,9 +51,9 @@ gesture_node:
     center_deadband: 0.05      # 画面中心 ±5% は旋回停止
     k_dist: 4.0                # 前後 P ゲイン
     k_yaw: 2.0                 # 旋回 P ゲイン
-    max_vx: 0.3                # 前進上限（初期は保守的に。慣れたら 0.5 まで）
-    max_back_vx: 0.2           # 後退上限（近すぎ時）
-    max_omega: 0.6             # 旋回上限
+    max_vx: 0.6                # 前進上限（クランプ上限 = 最大。2026-07-09 Phase B 成功後に引き上げ）
+    max_back_vx: 0.2           # 後退上限（後方が見えないため据え置き）
+    max_omega: 0.8             # 旋回上限（クランプ上限）
     smooth_alpha: 0.4          # 出力ローパス（小さいほど滑らか・応答遅）
   dance:
     extend_ratio: 1.0
