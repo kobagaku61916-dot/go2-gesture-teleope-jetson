@@ -55,6 +55,16 @@
 - [x] 実機で見つけた調整の記録: min_visibility 0.3 / no_body_grace 0.7s / dance max_interval 3.0s / wave amplitude 0.18・gap 1.2s /
   **safety_gate は lo 単独では bridge から発見できず wlx+lo が必須**（旧 relay と同構成）/ USB 再列挙で /dev/videoN が変わる
 
+## 人追従モード（2026-07-09 実機成功・改良継続中）
+
+- [x] follow_controller v1（肩幅ベース P 制御）実装 + Phase A 仮想検証（前後・旋回・デッドバンド・後退すべて期待どおり）
+- [x] 1.5m 校正: **sw_at_target = 0.105 実測**（幾何推定 0.19 は大幅ズレ — MediaPipe の肩点は物理肩幅より内側）
+- [x] 追従モードは視認チェックを**両肩のみ**に（手首要求だと歩行中に検出が切れる）
+- [x] **Phase B 実機追従成功**（近づく→1.5m 停止→後退追従→旋回追従→近すぎ後退）
+- [x] v2: 距離[m]推定ベース P（遠方で 0.6 に飽和）+ 見失い猶予 0.25s + ローパス緩和 → 「遅い・ぎこちない」を改善
+- [ ] **動き出しの遅さの原因調査（次回）**。仮説: ①ローパスがゼロから立ち上がる（起動キック不足）②検出獲得の初期遅延（tracking モードの初回検出）③13fps の制御周期そのもの ④デッドバンド境界のためらい。ログ+記録データ（/tmp/follow_run.txt 等）で切り分け
+- [ ] **YOLO 系（YOLOv8/11-pose 等）の試用検討（次回）**: Orin Nano の GPU + TensorRT で BlazePose(CPU 13fps) より高速・高頑健の可能性。検証観点: fps / 検出安定性（遠距離・部分隠れ）/ 33点→17点への gesture_mapper 対応 / CPU/GPU 負荷
+
 ## 保留（動いてから）
 
 - [ ] launch 一発起動 / systemd 化
