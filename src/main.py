@@ -101,10 +101,22 @@ class GestureNode(Node):
                 "configs の camera.device を確認（YUYV ノード。runbook Phase 1）")
         self.get_logger().info(f"camera: {self._camera!r}")
 
-        self._tracker = PoseTracker(
-            model_complexity=int(pose["model_complexity"]),
-            detection_confidence=float(pose["detection_confidence"]),
-            tracking_confidence=float(pose["tracking_confidence"]))
+        backend = str(cfg.get("backend", "blazepose")).lower()
+        if backend == "yolo":
+            # TensorRT 依存は選択時のみ import（Desktop でのテスト実行を汚さない）
+            from src.config import REPO_ROOT
+            from src.detect.yolo_pose_tracker import YoloPoseTracker
+            yl = cfg.get("yolo", {})
+            engine = str(yl.get("engine", "yolo11n-pose.fp16.engine"))
+            self._tracker = YoloPoseTracker(
+                str((REPO_ROOT / engine)), conf_th=float(yl.get("conf_th", 0.4)))
+            self.get_logger().info(f"認識バックエンド: YOLO-pose TensorRT ({engine})")
+        else:
+            self._tracker = PoseTracker(
+                model_complexity=int(pose["model_complexity"]),
+                detection_confidence=float(pose["detection_confidence"]),
+                tracking_confidence=float(pose["tracking_confidence"]))
+            self.get_logger().info("認識バックエンド: MediaPipe Pose (BlazePose)")
 
         self._pub = self.create_publisher(Twist, "/cmd_vel", 10)
 
@@ -257,6 +269,8 @@ def main():
     parser.add_argument("--enable-action", action="store_true", help="ダンス検出有効化")
     parser.add_argument("--follow", action="store_true",
                         help="人追従モード（テレオペ/アクション無効。肩幅ベースの P 制御）")
+    parser.add_argument("--backend", choices=["blazepose", "yolo"], default=None,
+                        help="認識バックエンド（既定は configs の backend）")
     parser.add_argument("--low-speed", action="store_true",
                         help="低速モード（0.2/0.3 に強制。初回検証・デモ安全用）")
     parser.add_argument("--no-low-speed", action="store_true",
@@ -272,6 +286,8 @@ def main():
         cfg.setdefault("action", {})["enable"] = True
     if args.follow:
         cfg["follow_mode"] = True
+    if args.backend:
+        cfg["backend"] = args.backend
     if args.low_speed:
         cfg["low_speed_mode"] = True
     if args.no_low_speed:

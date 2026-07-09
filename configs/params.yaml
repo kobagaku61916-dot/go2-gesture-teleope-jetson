@@ -15,6 +15,10 @@ gesture_node:
     min_visibility: 0.3        # 主要ランドマークの visibility 下限（未満は NO BODY 扱い）
                                # Phase 4 実測(2026-07-08): 0.5 だと腕上げ時に手首 visibility が
                                # 下回り FORWARD⇄NO BODY のちらつき → debounce リセットで指令が出ない
+  backend: blazepose           # 認識バックエンド: blazepose | yolo（-–backend で上書き可）
+  yolo:                        # backend: yolo のとき使用（Phase 3, 2026-07-09）
+    engine: yolo11n-pose.fp16.engine   # リポジトリルートからの相対パス（Jetson でビルド）
+    conf_th: 0.4               # 人検出の信頼度しきい値
   rate: 30.0                   # publish ループ上限 [Hz]（実効はカメラ/推論 fps に律速）
   display: false               # Jetson はヘッドレス既定
   mirror_turns: true           # 対面操作ミラー(2026-07-08 追加): ユーザーが手を出した側と
