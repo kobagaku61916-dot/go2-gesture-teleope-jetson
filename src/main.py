@@ -79,7 +79,8 @@ class GestureNode(Node):
             search_params = SearchParams(
                 edge_margin_px=int(sr.get("edge_margin_px", 100)),
                 search_omega=float(sr.get("omega", 0.5)),
-                search_timeout_sec=float(sr.get("timeout_sec", 3.0)))
+                search_timeout_sec=float(sr.get("timeout_sec", 4.0)),
+                exit_vel_px=float(sr.get("exit_vel_px", 4.0)))
             self._follow = FollowStateMachine(FollowParams(
                 target_distance_m=float(fl.get("target_distance_m", 1.5)),
                 sw_at_target=float(fl.get(sw_key, 0.105)),
@@ -197,6 +198,10 @@ class GestureNode(Node):
             # --- 追従モード: P 制御の連続値をそのまま publish（debounce 不使用）---
             now = time.monotonic()
             fs = self._follow.update(lm_list, w, h, now)
+            if (fs.state.value == "SEARCHING" and
+                    hasattr(self._tracker, "release_lock")):
+                # 探索中は対象ロックを解放し、視野に入った人を即再捕捉する
+                self._tracker.release_lock()
             self.publish_cmd(fs.vx, 0.0, fs.omega)
             if fs.label != self._last_label or now - self._last_sw_log >= 2.0:
                 self.get_logger().info(

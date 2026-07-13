@@ -174,5 +174,14 @@ class YoloPoseTracker:
     def find_visibilities(self):
         return self._vis
 
+    def release_lock(self):
+        """対象ロックを解放する（探索モード用）.
+
+        探索旋回中は「次に見えた人を即再捕捉」したいが、IoU 連続性による
+        ロック維持（乗り移り防止）が再発見を最大 1 秒弾いてしまうため、
+        探索状態の間は呼び出し側がこれを毎フレーム呼んでロックを外す。
+        """
+        self._tracker.reset()
+
     def close(self):
         self._engine.close()

@@ -15,7 +15,7 @@ W, H = 640, 480
 FPS = 13.0
 DT = 1.0 / FPS
 FP = FollowParams()            # 既定（grace 0.25s）
-SP = SearchParams(edge_margin_px=100, search_omega=0.5, search_timeout_sec=3.0)
+SP = SearchParams()   # 既定値（omega 0.8 / timeout 4.0 / exit_vel 4.0px）
 
 
 def make_lm(center_px=320, sw_px=67):
@@ -66,13 +66,33 @@ def test_exit_right_searches_right():
     assert out.label == "SEARCH-RIGHT"
 
 
-def test_center_loss_stops_without_search():
-    # 中央で消えた（遮蔽など・方向不明）→ 探索せず STOP
+def test_static_center_loss_stops_without_search():
+    # 静止したまま中央で消えた（遮蔽など・方向不明）→ 探索せず STOP
     sm = FollowStateMachine(FP, SP)
     _, t = run(sm, make_lm(center_px=320), 0.0, 1.0)
     out, _ = lose_target(sm, t, FP.lost_grace_sec + 0.5)
     assert out.state == FollowState.STOP
     assert out.vx == 0.0 and out.omega == 0.0
+
+
+def test_fast_exit_through_center_searches_by_velocity():
+    # 速い横抜け: 最後の観測が中央帯でも、横速度から方向を推定して探索する
+    sm = FollowStateMachine(FP, SP)
+    _, t = run(sm, make_lm(center_px=320), 0.0, 1.0)
+    for px in (330, 350, 380, 420):    # 右へ 10→40px/フレームで加速して消える
+        sm.update(make_lm(center_px=px), W, H, t)
+        t += DT
+    out, _ = lose_target(sm, t, FP.lost_grace_sec + 0.5)
+    assert out.state == FollowState.SEARCHING
+    assert out.omega < 0 and out.label == "SEARCH-RIGHT"
+
+
+def test_search_uses_max_omega():
+    # 探索旋回はクランプ上限（0.8）で回る
+    sm = FollowStateMachine(FP, SP)
+    t = track_then_exit(sm, exit_px=60)
+    out, _ = lose_target(sm, t, FP.lost_grace_sec + 0.5)
+    assert abs(out.omega) == SP.search_omega == 0.8
 
 
 def test_search_timeout_stops():

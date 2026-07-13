@@ -44,8 +44,10 @@ class ExitSide(Enum):
 @dataclass(frozen=True)
 class SearchParams:
     edge_margin_px: int = 100      # 画面端とみなす帯の幅 [px]
-    search_omega: float = 0.5      # 探索旋回速度 [rad/s]（クランプ 0.8 未満）
-    search_timeout_sec: float = 3.0  # 探索の上限時間 → STOP
+    search_omega: float = 0.8      # 探索旋回速度 [rad/s]（= safety_gate クランプ上限）
+    search_timeout_sec: float = 4.0  # 探索の上限時間 → STOP（0.8rad/s×4s ≒ 180°）
+    exit_vel_px: float = 4.0       # 離脱方向を速度から推定する下限 [px/フレーム]
+                                   # （速い横抜けは最後の位置が中央でも方向が分かる）
 
 
 @dataclass(frozen=True)
@@ -71,6 +73,8 @@ class FollowStateMachine:
         self._state = FollowState.TRACKING
         self._last_side = ExitSide.CENTER
         self._search_start = None
+        self._last_px = None
+        self._px_vel = 0.0   # 肩中点 X の速度 [px/フレーム]（EMA）
 
     @property
     def state(self) -> FollowState:
@@ -81,6 +85,8 @@ class FollowStateMachine:
         self._state = FollowState.TRACKING
         self._last_side = ExitSide.CENTER
         self._search_start = None
+        self._last_px = None
+        self._px_vel = 0.0
 
     # ------------------------------------------------------------------
     def update(self, lm_list, w, h, now: float) -> FollowOutput:
@@ -100,11 +106,13 @@ class FollowStateMachine:
 
         # 猶予超過（NO TARGET）
         if self._state == FollowState.TRACKING:
-            if self._last_side in (ExitSide.LEFT, ExitSide.RIGHT):
+            side = self._infer_exit_side()
+            if side in (ExitSide.LEFT, ExitSide.RIGHT):
+                self._last_side = side
                 self._state = FollowState.SEARCHING
                 self._search_start = now
             else:
-                # 中央で消えた（遮蔽など・方向不明）→ 探索せず停止
+                # 位置も速度も方向を示さない（静止したまま遮蔽など）→ 探索せず停止
                 self._state = FollowState.STOP
 
         if self._state == FollowState.SEARCHING:
@@ -121,11 +129,23 @@ class FollowStateMachine:
 
     # ------------------------------------------------------------------
     def _remember_side(self, lm_list, w) -> None:
-        """可視フレームごとに肩中点 X の帯（LEFT/CENTER/RIGHT）を記憶する."""
+        """可視フレームごとに肩中点 X の帯と横方向速度を記憶する."""
         px = (lm_list[L_SHOULDER][1] + lm_list[R_SHOULDER][1]) / 2.0
+        if self._last_px is not None:
+            # EMA で平滑化した横速度 [px/フレーム]（離脱方向の推定に使う）
+            self._px_vel = 0.7 * self._px_vel + 0.3 * (px - self._last_px)
+        self._last_px = px
         if px < self._p.edge_margin_px:
             self._last_side = ExitSide.LEFT
         elif px > w - self._p.edge_margin_px:
             self._last_side = ExitSide.RIGHT
         else:
             self._last_side = ExitSide.CENTER
+
+    def _infer_exit_side(self) -> ExitSide:
+        """離脱方向を推定する: ①端の帯で消えた ②速い横移動中に消えた の順で判定."""
+        if self._last_side in (ExitSide.LEFT, ExitSide.RIGHT):
+            return self._last_side
+        if abs(self._px_vel) >= self._p.exit_vel_px:
+            return ExitSide.RIGHT if self._px_vel > 0 else ExitSide.LEFT
+        return ExitSide.CENTER
