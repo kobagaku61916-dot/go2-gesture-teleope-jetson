@@ -98,8 +98,8 @@ class GestureNode(Node):
                 f"追従モード v3(探索付き): 目標 {fl.get('target_distance_m', 1.5)}m / "
                 f"見失い→消えた方向へ旋回探索 {search_params.search_timeout_sec}s "
                 f"(ω={search_params.search_omega}) → 停止 "
-                f"(sw_at_target={fl.get('sw_at_target', 0.105)})。"
-                "テレオペ・アクション検出は無効。見失い猶予 0.25s・探索はしない")
+                f"({sw_key}={fl.get(sw_key, 0.105)})。"
+                "テレオペ・アクション検出は無効。中央ロストは探索せず即停止")
         # 対面操作のミラー: ユーザーから見て手を出した側と同じ方向へ回るよう
         # 旋回符号を反転する（ロボットとユーザーが向かい合う搭載カメラ構成用）
         self._mirror_turns = bool(cfg.get("mirror_turns", True))
