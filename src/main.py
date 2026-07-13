@@ -28,7 +28,8 @@ from std_msgs.msg import String
 
 from src.camera import create_camera
 from src.config import load_section
-from src.follow.follow_controller import FollowController, FollowParams
+from src.follow.follow_controller import FollowParams
+from src.follow.search_behavior import FollowStateMachine, SearchParams
 from src.gesture.dance_detector import DanceDetector, DanceParams
 from src.gesture.debounce import CommandDebouncer
 from src.gesture.gesture_mapper import GestureParams, compute_command
@@ -74,7 +75,12 @@ class GestureNode(Node):
             sw_key = ("sw_at_target_yolo"
                       if str(cfg.get("backend", "blazepose")).lower() == "yolo"
                       else "sw_at_target")
-            self._follow = FollowController(FollowParams(
+            sr = fl.get("search", {})
+            search_params = SearchParams(
+                edge_margin_px=int(sr.get("edge_margin_px", 100)),
+                search_omega=float(sr.get("omega", 0.5)),
+                search_timeout_sec=float(sr.get("timeout_sec", 3.0)))
+            self._follow = FollowStateMachine(FollowParams(
                 target_distance_m=float(fl.get("target_distance_m", 1.5)),
                 sw_at_target=float(fl.get(sw_key, 0.105)),
                 deadband_m=float(fl.get("deadband_m", 0.15)),
@@ -85,10 +91,13 @@ class GestureNode(Node):
                 max_back_vx=float(fl.get("max_back_vx", 0.2)),
                 max_omega=float(fl.get("max_omega", 0.8)),
                 smooth_alpha=float(fl.get("smooth_alpha", 0.6)),
-                lost_grace_sec=float(fl.get("lost_grace_sec", 0.25))))
+                lost_grace_sec=float(fl.get("lost_grace_sec", 0.25))),
+                search_params)
             self._last_sw_log = 0.0
             self.get_logger().warn(
-                f"追従モード v2: 目標 {fl.get('target_distance_m', 1.5)}m "
+                f"追従モード v3(探索付き): 目標 {fl.get('target_distance_m', 1.5)}m / "
+                f"見失い→消えた方向へ旋回探索 {search_params.search_timeout_sec}s "
+                f"(ω={search_params.search_omega}) → 停止 "
                 f"(sw_at_target={fl.get('sw_at_target', 0.105)})。"
                 "テレオペ・アクション検出は無効。見失い猶予 0.25s・探索はしない")
         # 対面操作のミラー: ユーザーから見て手を出した側と同じ方向へ回るよう
@@ -191,7 +200,7 @@ class GestureNode(Node):
             self.publish_cmd(fs.vx, 0.0, fs.omega)
             if fs.label != self._last_label or now - self._last_sw_log >= 2.0:
                 self.get_logger().info(
-                    f"follow: {fs.label} dist={fs.distance_m:.2f}m "
+                    f"follow[{fs.state.value}]: {fs.label} dist={fs.distance_m:.2f}m "
                     f"vx={fs.vx:+.2f} omega={fs.omega:+.2f}")
                 self._last_label = fs.label
                 self._last_sw_log = now

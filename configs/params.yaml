@@ -64,6 +64,11 @@ gesture_node:
     max_omega: 0.8             # 旋回上限（クランプ上限）
     smooth_alpha: 0.6          # 出力ローパス（v1 0.4 → 応答改善）
     lost_grace_sec: 0.25       # 見失い猶予（1 フレーム落ちのストップ&ゴー解消）
+    search:                    # 見失い探索(2026-07-13 追加): 消えた方向へその場旋回
+      edge_margin_px: 100      # 画面端とみなす帯 [px]（この帯で最後に見えたら方向を記憶）
+      omega: 0.5               # 探索旋回速度 [rad/s]（前進はしない）
+      timeout_sec: 3.0         # これを超えたら STOP（回り続けない）
+      # 注: 画面中央で消えた場合（遮蔽など・方向不明）は探索せず即 STOP
   dance:
     extend_ratio: 1.0
     retract_ratio: 0.6
