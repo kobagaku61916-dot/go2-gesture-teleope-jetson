@@ -63,7 +63,10 @@
 - [x] **Phase B 実機追従成功**（近づく→1.5m 停止→後退追従→旋回追従→近すぎ後退）
 - [x] v2: 距離[m]推定ベース P（遠方で 0.6 に飽和）+ 見失い猶予 0.25s + ローパス緩和 → 「遅い・ぎこちない」を改善
 - [ ] **動き出しの遅さの原因調査（次回）**。仮説: ①ローパスがゼロから立ち上がる（起動キック不足）②検出獲得の初期遅延（tracking モードの初回検出）③13fps の制御周期そのもの ④デッドバンド境界のためらい。ログ+記録データ（/tmp/follow_run.txt 等）で切り分け
-- [ ] **YOLO 系（YOLOv8/11-pose 等）の試用検討（次回）**: Orin Nano の GPU + TensorRT で BlazePose(CPU 13fps) より高速・高頑健の可能性。検証観点: fps / 検出安定性（遠距離・部分隠れ）/ 33点→17点への gesture_mapper 対応 / CPU/GPU 負荷
+- [x] **YOLO 化 完了（2026-07-13, branch feature/yolo-follow）**: YOLO11n-pose を Desktop で ONNX 化 → Jetson trtexec FP16 → TensorRT 10 + cuda-python(12.6系必須) で推論。**実測: 純推論 5.2ms・カメラ込み 30fps（BlazePose 13fps の 2.3 倍・カメラ律速）・検出率 100%（1.5m 立ち 90/90）・6m 先でも検出**。COCO→MediaPipe アダプタで下流無改造。1.5m 校正 sw_at_target_yolo=0.167（バックエンド別校正）。Phase A dry-run 合格（全方向指令+デッドバンド+COAST 確認）
+- [x] **見失い探索（search_behavior, 2026-07-13）**: TRACKING/SEARCHING/STOP ステートマシン。消えた方向（端の帯 or 横速度から推定）へ最大 0.8rad/s でその場旋回・4s タイムアウト・探索中はロック解放で即再捕捉・中央ロストは探索せず停止。テスト計 69 件
+- [ ] **次回: YOLO 追従 + 探索の実機テスト（Phase B）**: 動き出しの機敏さ（13→30fps の効果）/ 探索旋回の実挙動 / 横抜け時の方向推定。※Go2 が 2 回「挙動がおかしく」なり Jetson ごと再起動された件の状況確認も（発生時の操作・表示を記録すること）
+- [ ] 実機 OK 後: feature/yolo-follow を main へマージし YOLO を既定バックエンドに
 
 ## 保留（動いてから）
 
