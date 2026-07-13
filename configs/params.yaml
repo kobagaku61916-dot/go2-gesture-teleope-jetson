@@ -52,7 +52,9 @@ gesture_node:
   follow:
     # v2(2026-07-09): sw 逆数から距離[m]を推定して P 制御（遠いほど素直に加速）
     target_distance_m: 1.5     # 追従目標距離 [m]
-    sw_at_target: 0.105        # 目標距離に立った人の正規化肩幅（2026-07-09 実測校正）
+    sw_at_target: 0.105        # BlazePose 用校正値（2026-07-09 実測: 1.5m）
+    sw_at_target_yolo: 0.167   # YOLO 用校正値（2026-07-13 実測: 1.5m で肩幅 107px/640。
+                               # COCO 肩点は MediaPipe より外側のため別校正が必須）
     deadband_m: 0.15           # 距離誤差 ±15cm は前後停止
     center_deadband: 0.05      # 画面中心 ±5% は旋回停止
     k_dist: 0.8                # 前後 P ゲイン [m/s per m]（3m で上限 0.6 に飽和）

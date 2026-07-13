@@ -70,9 +70,13 @@ class GestureNode(Node):
         self._follow = None
         if bool(cfg.get("follow_mode", False)):
             fl = cfg.get("follow", {})
+            # 距離校正値は認識バックエンドごとに異なる（肩点の定義が違うため）
+            sw_key = ("sw_at_target_yolo"
+                      if str(cfg.get("backend", "blazepose")).lower() == "yolo"
+                      else "sw_at_target")
             self._follow = FollowController(FollowParams(
                 target_distance_m=float(fl.get("target_distance_m", 1.5)),
-                sw_at_target=float(fl.get("sw_at_target", 0.105)),
+                sw_at_target=float(fl.get(sw_key, 0.105)),
                 deadband_m=float(fl.get("deadband_m", 0.15)),
                 center_deadband=float(fl.get("center_deadband", 0.05)),
                 k_dist=float(fl.get("k_dist", 0.8)),
